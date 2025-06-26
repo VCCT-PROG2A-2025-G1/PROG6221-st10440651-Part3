@@ -41,7 +41,7 @@ namespace PROG6221_st10440651_Part3
         {
             try
             {
-                SoundPlayer player = new SoundPlayer("welcome.wav"); // Place welcome.wav in project folder
+                SoundPlayer player = new SoundPlayer("Greetings.wav.unknown");
                 player.Play();
                 ChatHistory.Items.Add("Welcome to the Cybersecurity Awareness Chatbot!");
             }
