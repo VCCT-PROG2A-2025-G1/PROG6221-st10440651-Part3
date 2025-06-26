@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PROG6221_st10440651_Part3"
         mc:Ignorable="d"
-        Title="Cybersecurity Awareness Chatbot" Height="600" Width="800">
+        Title="Cybersecure Chatbot" Height="600" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -19,7 +19,7 @@
 
         <!-- Chat Area -->
         <StackPanel Grid.Row="0" Grid.Column="0" Margin="10">
-            <TextBlock Text="Cybersecurity Awareness Chatbot" FontSize="20" FontWeight="Bold" Foreground="#2E7D32"/>
+            <TextBlock Text="Cybersecure Chatbot" FontSize="20" FontWeight="Bold" Foreground="#2E7D32" FontFamily="Segoe UI Black"/>
             <TextBlock x:Name="AsciiArtBlock" FontFamily="Consolas" Margin="0,10"/>
         </StackPanel>
         <ListBox x:Name="ChatHistory" Grid.Row="1" Grid.Column="0" Margin="10" Height="400" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
