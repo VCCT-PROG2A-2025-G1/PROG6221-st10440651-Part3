@@ -41,13 +41,13 @@ namespace PROG6221_st10440651_Part3
         {
             try
             {
-                SoundPlayer player = new SoundPlayer("Greetings.wav.unknown");
+                SoundPlayer player = new SoundPlayer("Greetings.wav"); // Updated file name
                 player.Play();
-                ChatHistory.Items.Add("Welcome to the Cybersecurity Awareness Chatbot!");
+                ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
             }
             catch
             {
-                ChatHistory.Items.Add("Voice greeting unavailable. Welcome to the Cybersecurity Awareness Chatbot!");
+                ChatHistory.Items.Add("Voice greeting unavailable. Welcome to the Cybersecure Chatbot!");
             }
         }
 
@@ -61,7 +61,6 @@ namespace PROG6221_st10440651_Part3
 /   \_ |___, ||  O  ||   [_ |    \  /  \ ||   [_/   \_ |  :  ||    \ |   [_ 
 \     ||     ||     ||     ||  .  \ \    ||     \     ||     ||  .  \|     |
  \____||____/ |_____||_____||__|\_|  \___||_____|\____| \__,_||__|\_||_____|
- 
 ";
         }
 
