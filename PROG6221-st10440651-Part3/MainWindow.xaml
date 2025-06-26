@@ -5,8 +5,68 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PROG6221_st10440651_Part3"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Cybersecurity Awareness Chatbot" Height="600" Width="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
 
+        <!-- Chat Area -->
+        <StackPanel Grid.Row="0" Grid.Column="0" Margin="10">
+            <TextBlock Text="Cybersecurity Awareness Chatbot" FontSize="20" FontWeight="Bold" Foreground="#2E7D32"/>
+            <TextBlock x:Name="AsciiArtBlock" FontFamily="Consolas" Margin="0,10"/>
+        </StackPanel>
+        <ListBox x:Name="ChatHistory" Grid.Row="1" Grid.Column="0" Margin="10" Height="400" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="10">
+            <TextBox x:Name="UserInput" Width="500" Height="30" Margin="0,0,10,0"/>
+            <Button Content="Send" Width="100" Height="30" Click="SendMessage_Click" Background="#4CAF50" Foreground="White"/>
+        </StackPanel>
+
+        <!-- Task and Quiz Area -->
+        <TabControl Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Margin="10">
+            <TabItem Header="Tasks">
+                <StackPanel Margin="10">
+                    <TextBlock Text="Add Task" FontWeight="Bold"/>
+                    <TextBox x:Name="TaskTitle" Margin="0,5" ToolTip="Enter task title"/>
+                    <TextBox x:Name="TaskDescription" Margin="0,5" ToolTip="Enter task description"/>
+                    <TextBox x:Name="TaskReminder" Margin="0,5" ToolTip="Enter reminder (e.g., 2025-06-27 14:00)"/>
+                    <Button Content="Add Task" Margin="0,5" Click="AddTask_Click" Background="#4CAF50" Foreground="White"/>
+                    <ListView x:Name="TaskList" Height="200" Margin="0,10">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Title" Width="100" DisplayMemberBinding="{Binding Title}"/>
+                                <GridViewColumn Header="Description" Width="100" DisplayMemberBinding="{Binding Description}"/>
+                                <GridViewColumn Header="Reminder" Width="80" DisplayMemberBinding="{Binding Reminder}"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <Button Content="Mark Completed" Margin="0,5" Click="MarkTaskCompleted_Click" Background="#2196F3" Foreground="White"/>
+                    <Button Content="Delete Task" Margin="0,5" Click="DeleteTask_Click" Background="#F44336" Foreground="White"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Quiz">
+                <StackPanel Margin="10">
+                    <TextBlock x:Name="QuizQuestion" TextWrapping="Wrap" Height="100"/>
+                    <RadioButton x:Name="OptionA" GroupName="Quiz" Margin="0,5"/>
+                    <RadioButton x:Name="OptionB" GroupName="Quiz" Margin="0,5"/>
+                    <RadioButton x:Name="OptionC" GroupName="Quiz" Margin="0,5"/>
+                    <RadioButton x:Name="OptionD" GroupName="Quiz" Margin="0,5"/>
+                    <Button Content="Submit Answer" Margin="0,5" Click="SubmitQuizAnswer_Click" Background="#4CAF50" Foreground="White"/>
+                    <TextBlock x:Name="QuizFeedback" TextWrapping="Wrap" Margin="0,5"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Activity Log">
+                <StackPanel Margin="10">
+                    <ListBox x:Name="ActivityLogList" Height="200"/>
+                    <Button Content="Show More" Margin="0,5" Click="ShowMoreLogs_Click" Background="#4CAF50" Foreground="White"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
     </Grid>
-</Window>
+</Window>`
