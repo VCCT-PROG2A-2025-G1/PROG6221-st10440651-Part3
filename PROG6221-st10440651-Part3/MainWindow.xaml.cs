@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.IO;
+using System.Windows.Forms; // For NotifyIcon
+using System.Drawing; // For SystemIcons
+using System.Threading; // For background thread
 
 namespace PROG6221_st10440651_Part3
 {
@@ -14,7 +17,7 @@ namespace PROG6221_st10440651_Part3
     {
         private List<TaskItem> tasks = new List<TaskItem>();
         private List<QuizQuestion> quizQuestions = new List<QuizQuestion>();
-        private List<QuizQuestion> currentQuizQuestions = new List<QuizQuestion>(); // For randomized 10 questions
+        private List<QuizQuestion> currentQuizQuestions = new List<QuizQuestion>();
         private List<ActivityLog> activityLogs = new List<ActivityLog>();
         private int currentQuizQuestionIndex = -1;
         private int quizScore = 0;
@@ -30,12 +33,16 @@ namespace PROG6221_st10440651_Part3
             { "worried", "It's okay to feel worried. Let me help with some tips!" },
             { "curious", "Great to see your curiosity! Here's some info." }
         };
+        private System.Windows.Forms.NotifyIcon notifyIcon; // System tray icon
+        private System.Threading.Timer reminderTimer; // Timer for checking reminders
 
         public MainWindow()
         {
             InitializeComponent();
             InitializeQuiz();
             InitializeTimeComboBox();
+            InitializeSystemTray();
+            StartReminderCheck();
             PlayVoiceGreeting();
             DisplayAsciiArt();
             AddToLog("Application started.");
@@ -43,7 +50,6 @@ namespace PROG6221_st10440651_Part3
 
         private void InitializeTimeComboBox()
         {
-            // Populate TaskReminderTime with 30-minute intervals (00:00 to 23:30)
             for (int hour = 0; hour < 24; hour++)
             {
                 TaskReminderTime.Items.Add($"{hour:D2}:00");
@@ -51,11 +57,78 @@ namespace PROG6221_st10440651_Part3
             }
         }
 
+        private void InitializeSystemTray()
+        {
+            try
+            {
+                notifyIcon = new System.Windows.Forms.NotifyIcon
+                {
+                    Icon = System.Drawing.SystemIcons.Information, // Use a system icon
+                    Visible = true,
+                    Text = "Cybersecure Chatbot"
+                };
+                notifyIcon.BalloonTipClicked += (s, e) =>
+                {
+                    Dispatcher.Invoke(() => this.Activate()); // Bring window to focus
+                    AddToLog("System tray notification clicked.");
+                };
+                AddToLog("System tray initialized.");
+            }
+            catch (Exception ex)
+            {
+                AddToLog($"Failed to initialize system tray: {ex.Message}");
+            }
+        }
+
+        private void StartReminderCheck()
+        {
+            reminderTimer = new System.Threading.Timer(CheckReminders, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+            AddToLog("Reminder check timer started.");
+        }
+
+        private void CheckReminders(object state)
+        {
+            DateTime now = DateTime.Now;
+            foreach (var task in tasks.ToList()) // Use ToList to avoid collection modified exception
+            {
+                if (!string.IsNullOrEmpty(task.Reminder))
+                {
+                    try
+                    {
+                        DateTime reminderTime = DateTime.Parse(task.Reminder);
+                        if (now >= reminderTime && now <= reminderTime.AddMinutes(1))
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                notifyIcon.ShowBalloonTip(5000, "Task Reminder",
+                                    $"Reminder: {task.Title}\nDescription: {task.Description}",
+                                    System.Windows.Forms.ToolTipIcon.Info);
+                                ChatHistory.Items.Add($"Bot: Reminder for task '{task.Title}'!");
+                                AddToLog($"Reminder triggered for task: {task.Title}");
+                                tasks.Remove(task);
+                                TaskList.Items.Clear();
+                                foreach (var t in tasks)
+                                {
+                                    TaskList.Items.Add(new { t.Title, t.Description, t.Reminder });
+                                }
+                            });
+                        }
+                    }
+                    catch (FormatException ex)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            AddToLog($"Invalid reminder format for task {task.Title}: {ex.Message}");
+                        });
+                    }
+                }
+            }
+        }
+
         private void PlayVoiceGreeting()
         {
             try
             {
-                // Get the absolute path to Resources/Greetings.wav
                 string basePath = AppDomain.CurrentDomain.BaseDirectory;
                 string audioPath = Path.Combine(basePath, "Resources", "Greetings.wav");
                 AddToLog($"Attempting to play audio from: {audioPath}");
@@ -66,7 +139,7 @@ namespace PROG6221_st10440651_Part3
                 }
 
                 SoundPlayer player = new SoundPlayer(audioPath);
-                player.Load(); // Load the file to validate it
+                player.Load();
                 player.Play();
                 ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
                 AddToLog("Voice greeting played successfully.");
@@ -90,7 +163,6 @@ namespace PROG6221_st10440651_Part3
 \     ||     ||     ||     ||  .  \ \    ||     \     ||     ||  .  \|     |
  \____||____/ |_____||_____||__|\_|  \___||_____|\____| \__,_||__|\_||_____|
  
-
 ";
         }
 
@@ -107,12 +179,14 @@ namespace PROG6221_st10440651_Part3
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             AddToLog("Application exited.");
+            notifyIcon?.Visible = false;
+            notifyIcon?.Dispose();
+            reminderTimer?.Dispose();
             Application.Current.Shutdown();
         }
 
         private void ProcessInput(string input)
         {
-            // Memory: Store name
             if (input.Contains("my name is"))
             {
                 userName = input.Replace("my name is", "").Trim();
@@ -121,7 +195,6 @@ namespace PROG6221_st10440651_Part3
                 return;
             }
 
-            // Sentiment detection
             foreach (var sentiment in sentiments)
             {
                 if (input.Contains(sentiment.Key))
@@ -131,7 +204,6 @@ namespace PROG6221_st10440651_Part3
                 }
             }
 
-            // NLP: Keyword detection
             if (input.Contains("add task") || input.Contains("set task"))
             {
                 string task = input.Replace("add task", "").Replace("set task", "").Trim();
@@ -152,7 +224,6 @@ namespace PROG6221_st10440651_Part3
                 return;
             }
 
-            // Keyword responses
             foreach (var keyword in keywordResponses)
             {
                 if (input.Contains(keyword.Key))
@@ -164,7 +235,6 @@ namespace PROG6221_st10440651_Part3
                 }
             }
 
-            // Default response
             ChatHistory.Items.Add("Bot: I didn't understand that. Try asking about passwords, phishing, or tasks!");
             AddToLog("Unrecognized input received.");
         }
@@ -466,14 +536,12 @@ namespace PROG6221_st10440651_Part3
 
         private void StartQuiz()
         {
-            // Clear previous quiz questions and reset state
             currentQuizQuestions.Clear();
             currentQuizQuestionIndex = 0;
             quizScore = 0;
             QuizQuestion.Text = "";
             QuizFeedback.Text = "";
 
-            // Randomly select 10 questions
             Random random = new Random();
             currentQuizQuestions = quizQuestions.OrderBy(x => random.Next()).Take(10).ToList();
 
@@ -552,9 +620,7 @@ namespace PROG6221_st10440651_Part3
             QuizFeedback.Text = feedbackText;
             AddToLog($"Answered question {currentQuizQuestionIndex + 1}: {feedbackText}");
 
-            // Force UI update
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-            // Delay for 3 seconds for feedback visibility
             await Task.Delay(3000);
 
             currentQuizQuestionIndex++;
