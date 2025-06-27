@@ -1,6 +1,4 @@
-﻿using System.Media;
-using System.Windows;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Media;
@@ -88,6 +86,12 @@ namespace PROG6221_st10440651_Part3
             UserInput.Text = "";
         }
 
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            AddToLog("Application exited.");
+            Application.Current.Shutdown();
+        }
+
         private void ProcessInput(string input)
         {
             // Memory: Store name
@@ -120,7 +124,7 @@ namespace PROG6221_st10440651_Part3
             else if (input.Contains("quiz") || input.Contains("start quiz"))
             {
                 StartQuiz();
-                AddToLog("Quiz started.");
+                AddToLog("Quiz started via chat input.");
                 return;
             }
             else if (input.Contains("show activity log") || input.Contains("what have you done"))
@@ -145,6 +149,27 @@ namespace PROG6221_st10440651_Part3
             // Default response
             ChatHistory.Items.Add("Bot: I didn't understand that. Try asking about passwords, phishing, or tasks!");
             AddToLog("Unrecognized input received.");
+        }
+
+        private void StartQuiz_Click(object sender, RoutedEventArgs e)
+        {
+            StartQuiz();
+            AddToLog("Quiz started via button.");
+        }
+
+        private void EndQuiz_Click(object sender, RoutedEventArgs e)
+        {
+            QuizQuestion.Text = "Quiz ended! Click 'Start Quiz' to try again.";
+            OptionA.Visibility = Visibility.Collapsed;
+            OptionB.Visibility = Visibility.Collapsed;
+            OptionC.Visibility = Visibility.Collapsed;
+            OptionD.Visibility = Visibility.Collapsed;
+            SubmitAnswerButton.Visibility = Visibility.Collapsed;
+            EndQuizButton.Visibility = Visibility.Collapsed;
+            string feedback = quizScore >= 8 ? "Great job! You're a cybersecurity pro!" : "Keep learning to stay safe online!";
+            ChatHistory.Items.Add($"Bot: Quiz ended early! Score: {quizScore}/{quizQuestions.Count}. {feedback}");
+            AddToLog($"Quiz ended early with score {quizScore}/{quizQuestions.Count}");
+            currentQuizQuestionIndex = -1;
         }
 
         private void AddTask_Click(object sender, RoutedEventArgs e)
@@ -275,6 +300,7 @@ namespace PROG6221_st10440651_Part3
             OptionC.Visibility = Visibility.Visible;
             OptionD.Visibility = Visibility.Visible;
             SubmitAnswerButton.Visibility = Visibility.Visible;
+            EndQuizButton.Visibility = Visibility.Visible;
             DisplayQuizQuestion();
         }
 
@@ -282,12 +308,13 @@ namespace PROG6221_st10440651_Part3
         {
             if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= quizQuestions.Count)
             {
-                QuizQuestion.Text = "Quiz completed! Type 'start quiz' to try again.";
+                QuizQuestion.Text = "Quiz completed! Click 'Start Quiz' to try again.";
                 OptionA.Visibility = Visibility.Collapsed;
                 OptionB.Visibility = Visibility.Collapsed;
                 OptionC.Visibility = Visibility.Collapsed;
                 OptionD.Visibility = Visibility.Collapsed;
                 SubmitAnswerButton.Visibility = Visibility.Collapsed;
+                EndQuizButton.Visibility = Visibility.Collapsed;
                 string feedback = quizScore >= 8 ? "Great job! You're a cybersecurity pro!" : "Keep learning to stay safe online!";
                 ChatHistory.Items.Add($"Bot: Quiz completed! Score: {quizScore}/{quizQuestions.Count}. {feedback}");
                 AddToLog($"Quiz completed with score {quizScore}/{quizQuestions.Count}");
@@ -326,14 +353,15 @@ namespace PROG6221_st10440651_Part3
                 return;
             }
 
+            string correctAnswerText = question.Options[question.CorrectAnswer];
             if (selectedAnswer == question.CorrectAnswer)
             {
                 quizScore++;
-                QuizFeedback.Text = "Correct! " + question.Explanation;
+                QuizFeedback.Text = $"Correct! The correct answer is: {correctAnswerText}. {question.Explanation}";
             }
             else
             {
-                QuizFeedback.Text = "Incorrect. " + question.Explanation;
+                QuizFeedback.Text = $"Incorrect :( The correct answer is: {correctAnswerText}. {question.Explanation}";
             }
 
             currentQuizQuestionIndex++;
