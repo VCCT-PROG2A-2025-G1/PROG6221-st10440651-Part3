@@ -1,15 +1,29 @@
-﻿using System;
+﻿
+//st10440651
+// References:
+// https://docs.microsoft.com/en-us/dotnet/desktop/wpf/overview
+// https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.textbox
+// https://learn.microsoft.com/en-us/dotnet/api/system.windows.input.keyeventargs
+// https://learn.microsoft.com/en-us/dotnet/api/system.media.soundplayer
+// https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/listbox
+// https://learn.microsoft.com/en-us/dotnet/desktop/wpf/data/how-to-bind-to-a-collection-and-display-information-based-on-selection
+// https://www.w3schools.com/wpf/wpf_controls.asp
+// https://owasp.org/www-community/attacks/Phishing
+// https://www.cisa.gov/news-events/cybersecurity-advisories
+// https://www.microsoft.com/en-us/security/blog/using 
+// ASCII Logo                   https://patorjk.com/software/taag/#p=testall&f=Alpha&t=CyberSecure
+// Sample Data, FAQ             https://grok.com/chat/4b63ae80-4b06-4b6b-ba38-f423368560d2
+// Playing Audio in WAV format  https://stackoverflow.com/questions/71707808/how-to-add-a-wav-file-to-windows-form-application-in-visual-studio
+// Delayed response             https://ironpdf.com/blog/net-help/csharp-wait-for-seconds/
+// Cyber Security Terminology   https://www.metacompliance.com/cyber-security-terminology
+// Sentiment Detection          https://grok.com/share/c2hhcmQtMg%3D%3D_7c76dace-d2a1-4440-816a-8434724e882c
 using System.Collections.Generic;
 using System.Linq;
 using System.Media;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.IO;
-using System.Windows.Forms; // For NotifyIcon
-using System.Drawing; // For SystemIcons
-using System.Threading; // For background thread
 
 namespace PROG6221_st10440651_Part3
 {
@@ -22,27 +36,310 @@ namespace PROG6221_st10440651_Part3
         private int currentQuizQuestionIndex = -1;
         private int quizScore = 0;
         private string userName = "";
-        private Dictionary<string, List<string>> keywordResponses = new Dictionary<string, List<string>>
+        private string currentTopic = ""; // Track current topic for follow-up questions
+        private readonly Random random = new Random();
+        private readonly Dictionary<string, string> userMemory = new Dictionary<string, string>(); // Store user preferences
+        private readonly Dictionary<string, List<string>> keywordResponses = new Dictionary<string, List<string>>
         {
-            { "password", new List<string> { "Use strong, unique passwords.", "Avoid personal info in passwords." } },
-            { "phishing", new List<string> { "Don't click suspicious links.", "Report phishing emails." } },
-            { "privacy", new List<string> { "Check your account privacy settings.", "Use two-factor authentication." } }
+            // Cybersecurity topics
+            { "password", new List<string>
+                {
+                    "A strong password should be at least 12 characters long, include a mix of uppercase and lowercase letters, numbers, and special characters, and avoid common words or personal information.",
+                    "Use unique passwords for each account to prevent credential stuffing attacks.",
+                    "Avoid using easily guessable information like birthdays or pet names in passwords."
+                }
+            },
+            { "phishing", new List<string>
+                {
+                    "Be cautious of emails asking for personal information. Scammers often disguise themselves as trusted organizations.",
+                    "Check email sender addresses carefully for slight misspellings or unusual domains.",
+                    "Hover over links (without clicking) to verify their destination before proceeding."
+                }
+            },
+            { "firewall", new List<string>
+                {
+                    "A firewall monitors and controls incoming and outgoing network traffic based on predefined security rules, acting as a barrier to protect networks from unauthorized access and threats.",
+                    "Ensure your firewall is enabled to protect against unauthorized network access.",
+                    "Regularly update firewall rules to address new vulnerabilities and threats."
+                }
+            },
+            { "encryption", new List<string>
+                {
+                    "Encryption converts data into a secure format that can only be read with the correct key, protecting sensitive information during transmission or storage.",
+                    "Use end-to-end encryption for sensitive communications like messaging or email.",
+                    "Ensure websites use HTTPS to encrypt data between your browser and the server."
+                }
+            },
+            { "malware", new List<string>
+                {
+                    "Malware is malicious software designed to harm devices or networks. Protect against it by using antivirus software, avoiding suspicious downloads, and keeping systems updated.",
+                    "Common malware types include viruses, worms, and trojans. Regular scans can detect them.",
+                    "Avoid downloading attachments from unknown sources to reduce malware risks."
+                }
+            },
+            { "vpn", new List<string>
+                {
+                    "A Virtual Private Network (VPN) encrypts your internet connection, masking your IP address and protecting your data from eavesdropping on public or unsecured networks.",
+                    "Choose a reputable VPN provider to ensure strong encryption and no logging.",
+                    "Use a VPN when accessing sensitive accounts on public Wi-Fi for added security."
+                }
+            },
+            { "two-factor", new List<string>
+                {
+                    "Two-factor authentication (2FA) adds an extra layer of security by requiring two forms of identification, like a password and a code sent to your phone, to access an account.",
+                    "Enable 2FA on all critical accounts like email and banking for enhanced protection.",
+                    "Use authenticator apps for 2FA instead of SMS when possible for better security."
+                }
+            },
+            { "multi-factor", new List<string>
+                {
+                    "Multi-factor authentication (MFA or 2FA) enhances security by requiring multiple forms of verification, such as a password and a code from an authenticator app or biometric data.",
+                    "Enable MFA/2FA on critical accounts like email, banking, and social media to significantly reduce the risk of unauthorized access.",
+                    "Use authenticator apps or hardware tokens for MFA/2FA instead of SMS, as they offer stronger protection against SIM-swapping attacks."
+                }
+            },
+            { "ransomware", new List<string>
+                {
+                    "Ransomware encrypts a victim's data, locking access until a ransom is paid. Regular backups and avoiding suspicious links can help prevent it.",
+                    "Never pay a ransom, as it doesn't guarantee data recovery and funds cybercriminals.",
+                    "Keep software updated and use antivirus tools to reduce ransomware risks."
+                }
+            },
+            { "social engineering", new List<string>
+                {
+                    "Social engineering manipulates people into revealing sensitive information or performing actions, like clicking malicious links, often through impersonation or deception.",
+                    "Be skeptical of unsolicited calls or emails claiming to be from trusted entities.",
+                    "Verify requests for sensitive information directly with the organization."
+                }
+            },
+            { "patching", new List<string>
+                {
+                    "Patching fixes security vulnerabilities in software, preventing attackers from exploiting known weaknesses to gain unauthorized access.",
+                    "Enable automatic updates to ensure timely patching of software vulnerabilities.",
+                    "Regularly check for patches for all devices, including IoT and mobile devices."
+                }
+            },
+            { "ddos", new List<string>
+                {
+                    "A Distributed Denial-of-Service (DDoS) attack overwhelms a server with traffic to disrupt service. Mitigation includes traffic filtering and scalable infrastructure.",
+                    "DDoS attacks can target websites or networks, causing downtime or slowdowns.",
+                    "Use cloud-based DDoS protection services for robust defense against attacks."
+                }
+            },
+            { "antivirus", new List<string>
+                {
+                    "Antivirus software detects, quarantines, and removes malicious programs like viruses, worms, and trojans, safeguarding your system from harm.",
+                    "Run regular antivirus scans to catch threats early and keep definitions updated.",
+                    "Choose antivirus software with real-time protection for continuous monitoring."
+                }
+            },
+            { "data breach", new List<string>
+                {
+                    "A data breach occurs when unauthorized parties access sensitive information, like personal or financial data, often leading to identity theft or fraud.",
+                    "Monitor accounts for unusual activity to detect potential data breaches early.",
+                    "Use strong passwords and MFA to reduce the risk of data breaches."
+                }
+            },
+            { "secure browsing", new List<string>
+                {
+                    "Use HTTPS websites, avoid public Wi-Fi without a VPN, disable tracking, and keep your browser updated to reduce security risks.",
+                    "Clear browser cookies regularly to limit tracking and protect your privacy.",
+                    "Use private browsing modes to prevent storing sensitive session data."
+                }
+            },
+            { "backup", new List<string>
+                {
+                    "Regular backups ensure you can recover data after ransomware, hardware failure, or other incidents, minimizing data loss and downtime.",
+                    "Store backups offline or in a separate secure location to protect against ransomware.",
+                    "Test your backups periodically to ensure they can be restored successfully."
+                }
+            },
+            { "zero-day", new List<string>
+                {
+                    "A zero-day exploit targets a software vulnerability unknown to the vendor, allowing attacks before a patch is available.",
+                    "Use intrusion detection systems to monitor for zero-day exploit attempts.",
+                    "Keep software updated to minimize the window for zero-day vulnerabilities."
+                }
+            },
+            { "biometrics", new List<string>
+                {
+                    "Biometrics, like fingerprints or facial recognition, provide unique identifiers for authentication, making it harder for unauthorized users to gain access.",
+                    "Combine biometrics with passwords for stronger multi-factor authentication.",
+                    "Ensure biometric data is stored securely to prevent misuse if compromised."
+                }
+            },
+            { "cloud security", new List<string>
+                {
+                    "Cloud security involves protecting data, applications, and infrastructure in cloud environments through encryption, access controls, and regular audits.",
+                    "Use strong access controls and monitor cloud activity for suspicious behavior.",
+                    "Choose cloud providers with robust security certifications like ISO 27001."
+                }
+            },
+            { "iot", new List<string>
+                {
+                    "Internet of Things (IoT) devices can be vulnerable to hacking if not properly secured, risking data leaks or network compromise. Use strong passwords and updates.",
+                    "Change default passwords on IoT devices to prevent easy unauthorized access.",
+                    "Isolate IoT devices on a separate network to limit risks to your main network."
+                }
+            },
+            { "penetration testing", new List<string>
+                {
+                    "Penetration testing simulates cyberattacks to identify vulnerabilities in systems, helping organizations strengthen their defenses before real attacks occur.",
+                    "Conduct regular penetration tests to stay ahead of evolving cyber threats.",
+                    "Use findings from penetration tests to prioritize security improvements."
+                }
+            },
+            { "scam", new List<string>
+                {
+                    "Be cautious of unsolicited emails or messages asking for personal information. Verify the sender's legitimacy.",
+                    "Scammers often create urgency. Take time to verify before acting on suspicious requests.",
+                    "Avoid clicking links in unexpected messages, as they might lead to phishing sites."
+                }
+            },
+            { "privacy", new List<string>
+                {
+                    "Review privacy settings on social media to control who sees your information.",
+                    "Use a VPN on public Wi-Fi to protect your data from eavesdropping.",
+                    "Limit sharing personal details online to maintain your privacy."
+                }
+            },
+            { "secure wifi", new List<string>
+                {
+                    "Secure your Wi-Fi with a strong password and WPA3 encryption to prevent unauthorized access.",
+                    "Hide your Wi-Fi network's SSID to reduce visibility to potential attackers.",
+                    "Regularly monitor connected devices to detect unauthorized Wi-Fi access."
+                }
+            },
+            { "identity theft", new List<string>
+                {
+                    "Identity theft occurs when someone steals your personal information to commit fraud. Monitor accounts and use strong passwords to protect yourself.",
+                    "Freeze your credit to prevent unauthorized accounts being opened in your name.",
+                    "Be cautious about sharing personal details online to reduce identity theft risks."
+                }
+            },
+            { "patch management", new List<string>
+                {
+                    "Effective patch management involves regularly updating software to fix vulnerabilities and improve security.",
+                    "Prioritize critical patches to address high-risk vulnerabilities promptly.",
+                    "Automate patch deployment where possible to ensure consistent updates."
+                }
+            },
+            { "social media security", new List<string>
+                {
+                    "Secure social media accounts with strong, unique passwords and enable multi-factor authentication.",
+                    "Avoid sharing sensitive personal information on social media to prevent social engineering attacks.",
+                    "Regularly review connected apps and revoke access to unused or suspicious ones."
+                }
+            },
+            { "password manager", new List<string>
+                {
+                    "A password manager securely stores and generates complex passwords, reducing the need to remember multiple credentials.",
+                    "Use a trusted password manager to create unique passwords for each account.",
+                    "Ensure your password manager uses strong encryption and has a master password with MFA."
+                }
+            },
+            { "safe downloads", new List<string>
+                {
+                    "Only download files from trusted sources to avoid malware infections.",
+                    "Verify the integrity of downloads using checksums when available.",
+                    "Scan downloaded files with antivirus software before opening them."
+                }
+            },
+            { "incident response", new List<string>
+                {
+                    "An effective incident response plan involves identifying, containing, and mitigating cybersecurity incidents promptly.",
+                    "Document all incidents and conduct post-incident reviews to improve security measures.",
+                    "Train employees on incident response protocols to minimize damage from breaches."
+                }
+            },
+            { "endpoint security", new List<string>
+                {
+                    "Endpoint security protects devices like laptops and mobiles from threats using antivirus, firewalls, and regular updates.",
+                    "Ensure all endpoints have updated security software to prevent unauthorized access.",
+                    "Use device encryption to safeguard data on endpoints in case of loss or theft."
+                }
+            },
+            { "secure email", new List<string>
+                {
+                    "Use secure email practices like enabling MFA, avoiding suspicious attachments, and verifying sender identities.",
+                    "Encrypt sensitive emails to protect their contents from interception.",
+                    "Be cautious of phishing emails that mimic trusted sources to steal credentials."
+                }
+            },
+            { "cyber hygiene", new List<string>
+                {
+                    "Good cyber hygiene includes using strong passwords, updating software, and avoiding suspicious links.",
+                    "Regularly back up data and use antivirus software to maintain a secure digital environment.",
+                    "Educate yourself on common threats like phishing to improve your cyber hygiene."
+                }
+            },
+            // Non-cybersecurity topics for interactivity
+            { "hello", new List<string>
+                {
+                    "Hi there! How can I assist you?",
+                    "Hello! Ready to learn about cybersecurity?",
+                    "Hey, great to see you! What's on your mind?"
+                }
+            },
+            { "how are you", new List<string>
+                {
+                    "I'm just a bot, but I'm doing great!",
+                    "Feeling as secure as a firewall! How about you?",
+                    "I'm running smoothly, ready to answer your questions!"
+                }
+            },
+            { "name", new List<string>
+                {
+                    "I'm Cyber Aware Chatbot!",
+                    "You can call me the CyberSecure Bot!",
+                    "My name's Cyber Aware, here to keep you safe!"
+                }
+            },
+            { "purpose", new List<string>
+                {
+                    "My purpose is to help you understand cyber security awareness!",
+                    "I'm here to provide tips and advice on staying safe online!",
+                    "I exist to educate you on cybersecurity best practices!"
+                }
+            },
+            { "ask", new List<string>
+                {
+                    "You can ask me about anything cyber security related!",
+                    "Feel free to ask about passwords, 2FA/MFA, VPNs, or any security topic!",
+                    "Got a question about staying safe online? I'm all ears... or rather, all code!"
+                }
+            },
+            { "time", new List<string>
+                {
+                    $"The current time is {DateTime.Now:hh:mm tt}.",
+                    $"It's {DateTime.Now:hh:mm tt} right now, perfect time to learn about cybersecurity!",
+                    $"Current time: {DateTime.Now:hh:mm tt}. What's your next question?"
+                }
+            }
         };
-        private Dictionary<string, string> sentiments = new Dictionary<string, string>
+        private readonly Dictionary<string, string> sentiments = new Dictionary<string, string>
         {
-            { "worried", "It's okay to feel worried. Let me help with some tips!" },
-            { "curious", "Great to see your curiosity! Here's some info." }
+            { "worried", "It's understandable to feel concerned. Let's go over some practical steps to keep you safe." },
+            { "curious", "That's a great mindset! Let me share some insights to fuel your curiosity." },
+            { "frustrated", "I hear you, it can be overwhelming. Let's break this down step-by-step to make it easier." }
         };
-        private System.Windows.Forms.NotifyIcon notifyIcon; // System tray icon
-        private System.Threading.Timer reminderTimer; // Timer for checking reminders
+        private readonly Dictionary<string, string> acronymToTopicMap = new Dictionary<string, string>
+        {
+            { "2fa", "multi-factor" },
+            { "mfa", "multi-factor" },
+            { "vpn", "vpn" },
+            { "ddos", "ddos" },
+            { "iot", "iot" },
+            { "ids", "endpoint security" },
+            { "siem", "incident response" }
+        };
 
         public MainWindow()
         {
             InitializeComponent();
             InitializeQuiz();
             InitializeTimeComboBox();
-            InitializeSystemTray();
-            StartReminderCheck();
+            ChatHistory.Items.Add("Bot: Welcome to the Cybersecure Chatbot! How can I assist you today?");
             PlayVoiceGreeting();
             DisplayAsciiArt();
             AddToLog("Application started.");
@@ -54,74 +351,6 @@ namespace PROG6221_st10440651_Part3
             {
                 TaskReminderTime.Items.Add($"{hour:D2}:00");
                 TaskReminderTime.Items.Add($"{hour:D2}:30");
-            }
-        }
-
-        private void InitializeSystemTray()
-        {
-            try
-            {
-                notifyIcon = new System.Windows.Forms.NotifyIcon
-                {
-                    Icon = System.Drawing.SystemIcons.Information, // Use a system icon
-                    Visible = true,
-                    Text = "Cybersecure Chatbot"
-                };
-                notifyIcon.BalloonTipClicked += (s, e) =>
-                {
-                    Dispatcher.Invoke(() => this.Activate()); // Bring window to focus
-                    AddToLog("System tray notification clicked.");
-                };
-                AddToLog("System tray initialized.");
-            }
-            catch (Exception ex)
-            {
-                AddToLog($"Failed to initialize system tray: {ex.Message}");
-            }
-        }
-
-        private void StartReminderCheck()
-        {
-            reminderTimer = new System.Threading.Timer(CheckReminders, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
-            AddToLog("Reminder check timer started.");
-        }
-
-        private void CheckReminders(object state)
-        {
-            DateTime now = DateTime.Now;
-            foreach (var task in tasks.ToList()) // Use ToList to avoid collection modified exception
-            {
-                if (!string.IsNullOrEmpty(task.Reminder))
-                {
-                    try
-                    {
-                        DateTime reminderTime = DateTime.Parse(task.Reminder);
-                        if (now >= reminderTime && now <= reminderTime.AddMinutes(1))
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                notifyIcon.ShowBalloonTip(5000, "Task Reminder",
-                                    $"Reminder: {task.Title}\nDescription: {task.Description}",
-                                    System.Windows.Forms.ToolTipIcon.Info);
-                                ChatHistory.Items.Add($"Bot: Reminder for task '{task.Title}'!");
-                                AddToLog($"Reminder triggered for task: {task.Title}");
-                                tasks.Remove(task);
-                                TaskList.Items.Clear();
-                                foreach (var t in tasks)
-                                {
-                                    TaskList.Items.Add(new { t.Title, t.Description, t.Reminder });
-                                }
-                            });
-                        }
-                    }
-                    catch (FormatException ex)
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            AddToLog($"Invalid reminder format for task {task.Title}: {ex.Message}");
-                        });
-                    }
-                }
             }
         }
 
@@ -141,12 +370,11 @@ namespace PROG6221_st10440651_Part3
                 SoundPlayer player = new SoundPlayer(audioPath);
                 player.Load();
                 player.Play();
-                ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
                 AddToLog("Voice greeting played successfully.");
             }
             catch (Exception ex)
             {
-                ChatHistory.Items.Add($"Voice greeting unavailable: {ex.Message}. Welcome to the Cybersecure Chatbot!");
+                ChatHistory.Items.Add($"Bot: Voice greeting unavailable: {ex.Message}.");
                 AddToLog($"Failed to play voice greeting: {ex.Message}");
             }
         }
@@ -169,74 +397,149 @@ namespace PROG6221_st10440651_Part3
         private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
             string input = UserInput.Text.Trim().ToLower();
-            if (string.IsNullOrEmpty(input)) return;
+            if (string.IsNullOrEmpty(input))
+            {
+                ChatHistory.Items.Add("Bot: Please type a message to send!");
+                return;
+            }
 
             ChatHistory.Items.Add($"You: {input}");
             ProcessInput(input);
             UserInput.Text = "";
         }
 
+        private void UserInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendMessage_Click(sender, e);
+            }
+        }
+
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             AddToLog("Application exited.");
-            notifyIcon?.Visible = false;
-            notifyIcon?.Dispose();
-            reminderTimer?.Dispose();
             Application.Current.Shutdown();
         }
 
         private void ProcessInput(string input)
         {
-            if (input.Contains("my name is"))
+            // Clean input by removing question marks and trimming
+            string cleanedInput = input.Replace("?", "").Trim().ToLower();
+
+            // Memory: Store name
+            if (cleanedInput.Contains("my name is"))
             {
-                userName = input.Replace("my name is", "").Trim();
-                ChatHistory.Items.Add($"Bot: Nice to meet you, {userName}!");
+                userName = cleanedInput.Replace("my name is", "").Trim();
+                userMemory["name"] = userName;
+                ChatHistory.Items.Add($"Bot: Nice to meet you, {userName}! How can I assist you with cybersecurity today?");
                 AddToLog($"User set name to {userName}.");
                 return;
             }
 
-            foreach (var sentiment in sentiments)
+            // Sentiment detection
+            string sentiment = sentiments.Keys.FirstOrDefault(s => cleanedInput.Contains(s));
+            if (!string.IsNullOrEmpty(sentiment))
             {
-                if (input.Contains(sentiment.Key))
+                ChatHistory.Items.Add($"Bot: {sentiments[sentiment]}");
+                AddToLog($"Detected sentiment: {sentiment}");
+            }
+
+            // Store favorite topic
+            if (cleanedInput.Contains("interested in") || cleanedInput.Contains("like to learn"))
+            {
+                foreach (var topic in keywordResponses.Keys)
                 {
-                    ChatHistory.Items.Add($"Bot: {sentiment.Value}");
-                    AddToLog($"Detected sentiment: {sentiment.Key}");
+                    if (cleanedInput.Contains(topic) && topic != "name") // Avoid conflict with 'identity theft'
+                    {
+                        userMemory["favoriteTopic"] = topic;
+                        ChatHistory.Items.Add($"Bot: Great! I'll remember you're interested in {topic}. It's a key part of staying safe online.");
+                        currentTopic = topic;
+                        AddToLog($"User set favorite topic to {topic}");
+                        return;
+                    }
+                }
+                foreach (var acronym in acronymToTopicMap.Keys)
+                {
+                    if (cleanedInput.Contains(acronym))
+                    {
+                        string topic = acronymToTopicMap[acronym];
+                        userMemory["favoriteTopic"] = topic;
+                        ChatHistory.Items.Add($"Bot: Great! I'll remember you're interested in {topic}. It's a key part of staying safe online.");
+                        currentTopic = topic;
+                        AddToLog($"User set favorite topic to {topic}");
+                        return;
+                    }
                 }
             }
 
-            if (input.Contains("add task") || input.Contains("set task"))
+            // Handle task-related input
+            if (cleanedInput.Contains("add task") || cleanedInput.Contains("set task"))
             {
-                string task = input.Replace("add task", "").Replace("set task", "").Trim();
+                string task = cleanedInput.Replace("add task", "").Replace("set task", "").Trim();
                 ChatHistory.Items.Add($"Bot: Please enter task details in the Tasks tab for '{task}'.");
                 AddToLog($"User requested to add task: {task}");
                 return;
             }
-            else if (input.Contains("quiz") || input.Contains("start quiz"))
+            else if (cleanedInput.Contains("quiz") || cleanedInput.Contains("start quiz"))
             {
                 StartQuiz();
                 AddToLog("Quiz started via chat input.");
                 return;
             }
-            else if (input.Contains("show activity log") || input.Contains("what have you done"))
+            else if (cleanedInput.Contains("show activity log") || cleanedInput.Contains("what have you done"))
             {
                 DisplayActivityLog();
                 AddToLog("User viewed activity log.");
                 return;
             }
 
-            foreach (var keyword in keywordResponses)
+            // Handle follow-up questions
+            if ((cleanedInput.Contains("more") || cleanedInput.Contains("details")) && !string.IsNullOrEmpty(currentTopic))
             {
-                if (input.Contains(keyword.Key))
+                if (keywordResponses.ContainsKey(currentTopic))
                 {
-                    string response = keyword.Value[new Random().Next(keyword.Value.Count)];
+                    string response = keywordResponses[currentTopic][random.Next(keywordResponses[currentTopic].Count)];
                     ChatHistory.Items.Add($"Bot: {response}");
-                    AddToLog($"Responded to keyword: {keyword.Key}");
+                    AddToLog($"Follow-up response for topic: {currentTopic}");
                     return;
                 }
             }
 
-            ChatHistory.Items.Add("Bot: I didn't understand that. Try asking about passwords, phishing, or tasks!");
-            AddToLog("Unrecognized input received.");
+            // Handle acronym matches
+            foreach (var acronym in acronymToTopicMap.Keys)
+            {
+                string acronymLower = acronym.ToLower();
+                if (cleanedInput.Equals(acronymLower) || cleanedInput.Contains($" {acronymLower} ") || cleanedInput.StartsWith($"{acronymLower} ") || cleanedInput.EndsWith($" {acronymLower}"))
+                {
+                    string topic = acronymToTopicMap[acronym];
+                    currentTopic = topic;
+                    string response = keywordResponses[topic][random.Next(keywordResponses[topic].Count)];
+                    ChatHistory.Items.Add($"Bot: {response}");
+                    AddToLog($"Responded to acronym: {acronymLower} (mapped to {topic})");
+                    return;
+                }
+            }
+
+            // Handle keyword responses
+            foreach (var keyword in keywordResponses.Keys)
+            {
+                string keywordLower = keyword.ToLower();
+                if (keyword == "name" && cleanedInput.Contains("identity")) continue; // Avoid conflict with 'identity theft'
+                if (cleanedInput.Equals(keywordLower) || cleanedInput.Contains($" {keywordLower} ") || cleanedInput.StartsWith($"{keywordLower} ") || cleanedInput.EndsWith($" {keywordLower}"))
+                {
+                    currentTopic = keyword;
+                    string response = keywordResponses[keyword][random.Next(keywordResponses[keyword].Count)];
+                    // Personalize response if favorite topic is known
+                    if (userMemory.ContainsKey("favoriteTopic") && random.Next(0, 3) == 0)
+                    {
+                        response += $"\nAs someone interested in {userMemory["favoriteTopic"]}, you might want to explore this topic further!";
+                    }
+                    ChatHistory.Items.Add($"Bot: {response}");
+                    AddToLog($"Responded to keyword: {keywordLower}");
+                    return;
+                }
+            }
         }
 
         private void StartQuiz_Click(object sender, RoutedEventArgs e)
