@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace PROG6221_st10440651_Part3
 {
-    public class QuizQuestions
+    public class QuizQuestion
     {
         public string Question { get; set; }
         public string[] Options { get; set; }

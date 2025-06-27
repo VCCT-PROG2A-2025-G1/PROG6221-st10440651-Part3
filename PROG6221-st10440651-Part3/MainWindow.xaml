@@ -52,12 +52,12 @@
             </TabItem>
             <TabItem Header="Quiz">
                 <StackPanel Margin="10">
-                    <TextBlock x:Name="QuizQuestion" TextWrapping="Wrap" Height="100"/>
-                    <RadioButton x:Name="OptionA" GroupName="Quiz" Margin="0,5"/>
-                    <RadioButton x:Name="OptionB" GroupName="Quiz" Margin="0,5"/>
-                    <RadioButton x:Name="OptionC" GroupName="Quiz" Margin="0,5"/>
-                    <RadioButton x:Name="OptionD" GroupName="Quiz" Margin="0,5"/>
-                    <Button Content="Submit Answer" Margin="0,5" Click="SubmitQuizAnswer_Click" Background="#4CAF50" Foreground="White"/>
+                    <TextBlock x:Name="QuizQuestion" TextWrapping="Wrap" Height="100" Text="Type 'start quiz' in the chat to begin!"/>
+                    <RadioButton x:Name="OptionA" GroupName="Quiz" Margin="0,5" Visibility="Collapsed"/>
+                    <RadioButton x:Name="OptionB" GroupName="Quiz" Margin="0,5" Visibility="Collapsed"/>
+                    <RadioButton x:Name="OptionC" GroupName="Quiz" Margin="0,5" Visibility="Collapsed"/>
+                    <RadioButton x:Name="OptionD" GroupName="Quiz" Margin="0,5" Visibility="Collapsed"/>
+                    <Button Content="Submit Answer" Margin="0,5" Click="SubmitQuizAnswer_Click" Background="#4CAF50" Foreground="White" Visibility="Collapsed"/>
                     <TextBlock x:Name="QuizFeedback" TextWrapping="Wrap" Margin="0,5"/>
                 </StackPanel>
             </TabItem>

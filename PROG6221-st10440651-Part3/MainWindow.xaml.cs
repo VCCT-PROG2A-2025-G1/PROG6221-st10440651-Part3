@@ -1,4 +1,6 @@
-﻿using System;
+﻿using System.Media;
+using System.Windows;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Media;
@@ -41,26 +43,38 @@ namespace PROG6221_st10440651_Part3
         {
             try
             {
-                SoundPlayer player = new SoundPlayer("Greetings.wav"); // Updated file name
+                SoundPlayer player = new SoundPlayer("Greetings.wav");
                 player.Play();
                 ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
             }
-            catch
+            catch (Exception ex)
             {
-                ChatHistory.Items.Add("Voice greeting unavailable. Welcome to the Cybersecure Chatbot!");
+                try
+                {
+                    SoundPlayer player = new SoundPlayer("Audio/Greetings.wav");
+                    player.Play();
+                    ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
+                }
+                catch
+                {
+                    ChatHistory.Items.Add($"Voice greeting unavailable: {ex.Message}. Welcome to the Cybersecure Chatbot!");
+                }
             }
         }
 
         private void DisplayAsciiArt()
         {
             AsciiArtBlock.Text = @"
-       __  __ __  ____     ___  ____    _____   ___    __  __ __  ____     ___ 
+ 
+    __  __ __  ____     ___  ____    _____   ___    __  __ __  ____     ___ 
    /  ]|  |  ||    \   /  _]|    \  / ___/  /  _]  /  ]|  |  ||    \   /  _]
   /  / |  |  ||  o  ) /  [_ |  D  )(   \_  /  [_  /  / |  |  ||  D  ) /  [_ 
  /  /  |  ~  ||     ||    _]|    /  \__  ||    _]/  /  |  |  ||    / |    _]
 /   \_ |___, ||  O  ||   [_ |    \  /  \ ||   [_/   \_ |  :  ||    \ |   [_ 
 \     ||     ||     ||     ||  .  \ \    ||     \     ||     ||  .  \|     |
  \____||____/ |_____||_____||__|\_|  \___||_____|\____| \__,_||__|\_||_____|
+ 
+
 ";
         }
 
@@ -254,20 +268,30 @@ namespace PROG6221_st10440651_Part3
         {
             currentQuizQuestionIndex = 0;
             quizScore = 0;
+            QuizQuestion.Text = "";
+            QuizFeedback.Text = "";
+            OptionA.Visibility = Visibility.Visible;
+            OptionB.Visibility = Visibility.Visible;
+            OptionC.Visibility = Visibility.Visible;
+            OptionD.Visibility = Visibility.Visible;
+            SubmitAnswerButton.Visibility = Visibility.Visible;
             DisplayQuizQuestion();
         }
 
         private void DisplayQuizQuestion()
         {
-            if (currentQuizQuestionIndex >= quizQuestions.Count)
+            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= quizQuestions.Count)
             {
+                QuizQuestion.Text = "Quiz completed! Type 'start quiz' to try again.";
+                OptionA.Visibility = Visibility.Collapsed;
+                OptionB.Visibility = Visibility.Collapsed;
+                OptionC.Visibility = Visibility.Collapsed;
+                OptionD.Visibility = Visibility.Collapsed;
+                SubmitAnswerButton.Visibility = Visibility.Collapsed;
                 string feedback = quizScore >= 8 ? "Great job! You're a cybersecurity pro!" : "Keep learning to stay safe online!";
                 ChatHistory.Items.Add($"Bot: Quiz completed! Score: {quizScore}/{quizQuestions.Count}. {feedback}");
                 AddToLog($"Quiz completed with score {quizScore}/{quizQuestions.Count}");
                 currentQuizQuestionIndex = -1;
-                QuizQuestion.Text = "";
-                OptionA.Content = OptionB.Content = OptionC.Content = OptionD.Content = "";
-                OptionA.IsChecked = OptionB.IsChecked = OptionC.IsChecked = OptionD.IsChecked = false;
                 return;
             }
 
@@ -277,12 +301,17 @@ namespace PROG6221_st10440651_Part3
             OptionB.Content = question.Options.Length > 1 ? question.Options[1] : "";
             OptionC.Content = question.Options.Length > 2 ? question.Options[2] : "";
             OptionD.Content = question.Options.Length > 3 ? question.Options[3] : "";
+            OptionA.Visibility = question.Options.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            OptionB.Visibility = question.Options.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
+            OptionC.Visibility = question.Options.Length > 2 ? Visibility.Visible : Visibility.Collapsed;
+            OptionD.Visibility = question.Options.Length > 3 ? Visibility.Visible : Visibility.Collapsed;
             OptionA.IsChecked = OptionB.IsChecked = OptionC.IsChecked = OptionD.IsChecked = false;
+            QuizFeedback.Text = "";
         }
 
         private void SubmitQuizAnswer_Click(object sender, RoutedEventArgs e)
         {
-            if (currentQuizQuestionIndex < 0) return;
+            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= quizQuestions.Count) return;
 
             var question = quizQuestions[currentQuizQuestionIndex];
             int selectedAnswer = -1;
@@ -290,6 +319,12 @@ namespace PROG6221_st10440651_Part3
             else if (OptionB.IsChecked == true) selectedAnswer = 1;
             else if (OptionC.IsChecked == true) selectedAnswer = 2;
             else if (OptionD.IsChecked == true) selectedAnswer = 3;
+
+            if (selectedAnswer == -1)
+            {
+                QuizFeedback.Text = "Please select an answer.";
+                return;
+            }
 
             if (selectedAnswer == question.CorrectAnswer)
             {
@@ -329,26 +364,5 @@ namespace PROG6221_st10440651_Part3
                 ActivityLogList.Items.Add($"{log.Timestamp}: {log.Action}");
             }
         }
-    }
-
-    public class TaskItem
-    {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string Reminder { get; set; }
-    }
-
-    public class QuizQuestion
-    {
-        public string Question { get; set; }
-        public string[] Options { get; set; }
-        public int CorrectAnswer { get; set; }
-        public string Explanation { get; set; }
-    }
-
-    public class ActivityLog
-    {
-        public string Action { get; set; }
-        public DateTime Timestamp { get; set; }
     }
 }

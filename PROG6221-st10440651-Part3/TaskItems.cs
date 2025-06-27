@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 namespace PROG6221_st10440651_Part3
 {
-    public class TaskItems
+    public class TaskItem
     {
         public string Title { get; set; }
         public string Description { get; set; }
