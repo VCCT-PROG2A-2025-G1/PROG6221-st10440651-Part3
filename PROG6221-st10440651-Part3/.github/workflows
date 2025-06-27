@@ -1,1 +1,19 @@
-
+name: CI Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' # Adjust to your .NET version (e.g., 4.8)
+    - name: Restore
+      run: dotnet restore PROG6221_st10440651_Part3.sln
+    - name: Build
+      run: dotnet build PROG6221_st10440651_Part3.sln --configuration Release --no-restore
