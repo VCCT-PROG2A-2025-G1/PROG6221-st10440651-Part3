@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Media;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.IO;
 
 namespace PROG6221_st10440651_Part3
 {
@@ -12,6 +14,7 @@ namespace PROG6221_st10440651_Part3
     {
         private List<TaskItem> tasks = new List<TaskItem>();
         private List<QuizQuestion> quizQuestions = new List<QuizQuestion>();
+        private List<QuizQuestion> currentQuizQuestions = new List<QuizQuestion>(); // For randomized 10 questions
         private List<ActivityLog> activityLogs = new List<ActivityLog>();
         private int currentQuizQuestionIndex = -1;
         private int quizScore = 0;
@@ -32,31 +35,46 @@ namespace PROG6221_st10440651_Part3
         {
             InitializeComponent();
             InitializeQuiz();
+            InitializeTimeComboBox();
             PlayVoiceGreeting();
             DisplayAsciiArt();
             AddToLog("Application started.");
+        }
+
+        private void InitializeTimeComboBox()
+        {
+            // Populate TaskReminderTime with 30-minute intervals (00:00 to 23:30)
+            for (int hour = 0; hour < 24; hour++)
+            {
+                TaskReminderTime.Items.Add($"{hour:D2}:00");
+                TaskReminderTime.Items.Add($"{hour:D2}:30");
+            }
         }
 
         private void PlayVoiceGreeting()
         {
             try
             {
-                SoundPlayer player = new SoundPlayer("Greetings.wav");
+                // Get the absolute path to Resources/Greetings.wav
+                string basePath = AppDomain.CurrentDomain.BaseDirectory;
+                string audioPath = Path.Combine(basePath, "Resources", "Greetings.wav");
+                AddToLog($"Attempting to play audio from: {audioPath}");
+
+                if (!File.Exists(audioPath))
+                {
+                    throw new FileNotFoundException($"Audio file not found at: {audioPath}");
+                }
+
+                SoundPlayer player = new SoundPlayer(audioPath);
+                player.Load(); // Load the file to validate it
                 player.Play();
                 ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
+                AddToLog("Voice greeting played successfully.");
             }
             catch (Exception ex)
             {
-                try
-                {
-                    SoundPlayer player = new SoundPlayer("Audio/Greetings.wav");
-                    player.Play();
-                    ChatHistory.Items.Add("Welcome to the Cybersecure Chatbot!");
-                }
-                catch
-                {
-                    ChatHistory.Items.Add($"Voice greeting unavailable: {ex.Message}. Welcome to the Cybersecure Chatbot!");
-                }
+                ChatHistory.Items.Add($"Voice greeting unavailable: {ex.Message}. Welcome to the Cybersecure Chatbot!");
+                AddToLog($"Failed to play voice greeting: {ex.Message}");
             }
         }
 
@@ -166,17 +184,26 @@ namespace PROG6221_st10440651_Part3
             OptionD.Visibility = Visibility.Collapsed;
             SubmitAnswerButton.Visibility = Visibility.Collapsed;
             EndQuizButton.Visibility = Visibility.Collapsed;
+            QuizFeedback.Text = "";
             string feedback = quizScore >= 8 ? "Great job! You're a cybersecurity pro!" : "Keep learning to stay safe online!";
-            ChatHistory.Items.Add($"Bot: Quiz ended early! Score: {quizScore}/{quizQuestions.Count}. {feedback}");
-            AddToLog($"Quiz ended early with score {quizScore}/{quizQuestions.Count}");
+            ChatHistory.Items.Add($"Bot: Quiz ended early! Score: {quizScore}/{currentQuizQuestions.Count}. {feedback}");
+            AddToLog($"Quiz ended early with score {quizScore}/{currentQuizQuestions.Count}");
             currentQuizQuestionIndex = -1;
+            currentQuizQuestions.Clear();
         }
 
         private void AddTask_Click(object sender, RoutedEventArgs e)
         {
             string title = TaskTitle.Text.Trim();
             string description = TaskDescription.Text.Trim();
-            string reminder = TaskReminder.Text.Trim();
+            string reminder = "";
+
+            if (TaskReminderDate.SelectedDate.HasValue && TaskReminderTime.SelectedItem != null)
+            {
+                DateTime date = TaskReminderDate.SelectedDate.Value;
+                string time = TaskReminderTime.SelectedItem.ToString();
+                reminder = $"{date:yyyy-MM-dd} {time}";
+            }
 
             if (!string.IsNullOrEmpty(title))
             {
@@ -184,7 +211,15 @@ namespace PROG6221_st10440651_Part3
                 TaskList.Items.Add(new { Title = title, Description = description, Reminder = reminder });
                 ChatHistory.Items.Add($"Bot: Task '{title}' added.");
                 AddToLog($"Task added: {title}");
-                TaskTitle.Text = TaskDescription.Text = TaskReminder.Text = "";
+                TaskTitle.Text = "";
+                TaskDescription.Text = "";
+                TaskReminderDate.SelectedDate = null;
+                TaskReminderTime.SelectedItem = null;
+            }
+            else
+            {
+                ChatHistory.Items.Add("Bot: Please enter a task title.");
+                AddToLog("Task addition failed: No title provided.");
             }
         }
 
@@ -285,16 +320,163 @@ namespace PROG6221_st10440651_Part3
                     Options = new[] { "Speed up internet", "Block unauthorized access", "Store passwords", "Send emails" },
                     CorrectAnswer = 1,
                     Explanation = "A firewall blocks unauthorized access to protect your network."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is malware?",
+                    Options = new[] { "A type of hardware", "Malicious software", "A secure protocol", "An encryption method" },
+                    CorrectAnswer = 1,
+                    Explanation = "Malware is malicious software designed to harm or exploit devices."
+                },
+                new QuizQuestion
+                {
+                    Question = "Is it safe to share your password with a friend? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Sharing passwords increases the risk of unauthorized access."
+                },
+                new QuizQuestion
+                {
+                    Question = "What does a VPN do?",
+                    Options = new[] { "Speeds up your internet", "Encrypts your connection", "Blocks ads", "Stores data" },
+                    CorrectAnswer = 1,
+                    Explanation = "A VPN encrypts your internet connection to protect your data."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is ransomware?",
+                    Options = new[] { "Software to speed up your PC", "Malware that locks your data", "A type of firewall", "A password manager" },
+                    CorrectAnswer = 1,
+                    Explanation = "Ransomware locks your data and demands payment to unlock it."
+                },
+                new QuizQuestion
+                {
+                    Question = "Should you update your software regularly? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 0,
+                    Explanation = "Regular updates patch security vulnerabilities."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is a brute force attack?",
+                    Options = new[] { "Sending phishing emails", "Trying many passwords", "Installing malware", "Hacking a firewall" },
+                    CorrectAnswer = 1,
+                    Explanation = "A brute force attack tries multiple passwords to gain access."
+                },
+                new QuizQuestion
+                {
+                    Question = "Is it safe to use 'password' as your password? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Common passwords like 'password' are easily guessed by attackers."
+                },
+                new QuizQuestion
+                {
+                    Question = "What does HTTPS indicate on a website?",
+                    Options = new[] { "High-speed connection", "Secure connection", "Free website", "No login required" },
+                    CorrectAnswer = 1,
+                    Explanation = "HTTPS indicates the website uses encryption to secure data."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is a keylogger?",
+                    Options = new[] { "A password manager", "Software that records keystrokes", "A network scanner", "An encryption tool" },
+                    CorrectAnswer = 1,
+                    Explanation = "A keylogger records keystrokes to steal sensitive information."
+                },
+                new QuizQuestion
+                {
+                    Question = "Should you back up your data regularly? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 0,
+                    Explanation = "Regular backups protect against data loss from attacks or failures."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is encryption used for?",
+                    Options = new[] { "Speeding up data", "Protecting data confidentiality", "Increasing storage", "Blocking websites" },
+                    CorrectAnswer = 1,
+                    Explanation = "Encryption protects data by making it unreadable without a key."
+                },
+                new QuizQuestion
+                {
+                    Question = "Can antivirus software detect all malware? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "No antivirus can detect all malware, but it significantly reduces risk."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is a DDoS attack?",
+                    Options = new[] { "Stealing passwords", "Overloading a server", "Encrypting data", "Phishing emails" },
+                    CorrectAnswer = 1,
+                    Explanation = "A DDoS attack overloads a server to disrupt service availability."
+                },
+                new QuizQuestion
+                {
+                    Question = "Is it safe to connect to unknown USB devices? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Unknown USB devices can contain malware that infects your system."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is a password manager used for?",
+                    Options = new[] { "Hacking accounts", "Storing secure passwords", "Blocking websites", "Sending emails" },
+                    CorrectAnswer = 1,
+                    Explanation = "A password manager securely stores and manages your passwords."
+                },
+                new QuizQuestion
+                {
+                    Question = "Should you use public computers for sensitive tasks? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Public computers may have keyloggers or malware, making them unsafe."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is a zero-day exploit?",
+                    Options = new[] { "A new software feature", "An unknown vulnerability", "A strong password", "A firewall rule" },
+                    CorrectAnswer = 1,
+                    Explanation = "A zero-day exploit targets a vulnerability unknown to the software vendor."
+                },
+                new QuizQuestion
+                {
+                    Question = "Does incognito mode protect your data from hackers? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Incognito mode only prevents browser history saving, not hacking."
+                },
+                new QuizQuestion
+                {
+                    Question = "What is multi-factor authentication?",
+                    Options = new[] { "Multiple passwords", "Multiple verification methods", "Multiple users", "Multiple devices" },
+                    CorrectAnswer = 1,
+                    Explanation = "Multi-factor authentication uses multiple verification methods for security."
+                },
+                new QuizQuestion
+                {
+                    Question = "Should you trust emails claiming you won a prize? (True/False)",
+                    Options = new[] { "True", "False" },
+                    CorrectAnswer = 1,
+                    Explanation = "Such emails are often scams to steal personal information."
                 }
             });
         }
 
         private void StartQuiz()
         {
+            // Clear previous quiz questions and reset state
+            currentQuizQuestions.Clear();
             currentQuizQuestionIndex = 0;
             quizScore = 0;
             QuizQuestion.Text = "";
             QuizFeedback.Text = "";
+
+            // Randomly select 10 questions
+            Random random = new Random();
+            currentQuizQuestions = quizQuestions.OrderBy(x => random.Next()).Take(10).ToList();
+
             OptionA.Visibility = Visibility.Visible;
             OptionB.Visibility = Visibility.Visible;
             OptionC.Visibility = Visibility.Visible;
@@ -306,7 +488,7 @@ namespace PROG6221_st10440651_Part3
 
         private void DisplayQuizQuestion()
         {
-            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= quizQuestions.Count)
+            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= currentQuizQuestions.Count)
             {
                 QuizQuestion.Text = "Quiz completed! Click 'Start Quiz' to try again.";
                 OptionA.Visibility = Visibility.Collapsed;
@@ -315,14 +497,16 @@ namespace PROG6221_st10440651_Part3
                 OptionD.Visibility = Visibility.Collapsed;
                 SubmitAnswerButton.Visibility = Visibility.Collapsed;
                 EndQuizButton.Visibility = Visibility.Collapsed;
+                QuizFeedback.Text = "";
                 string feedback = quizScore >= 8 ? "Great job! You're a cybersecurity pro!" : "Keep learning to stay safe online!";
-                ChatHistory.Items.Add($"Bot: Quiz completed! Score: {quizScore}/{quizQuestions.Count}. {feedback}");
-                AddToLog($"Quiz completed with score {quizScore}/{quizQuestions.Count}");
+                ChatHistory.Items.Add($"Bot: Quiz completed! Score: {quizScore}/{currentQuizQuestions.Count}. {feedback}");
+                AddToLog($"Quiz completed with score {quizScore}/{currentQuizQuestions.Count}");
                 currentQuizQuestionIndex = -1;
+                currentQuizQuestions.Clear();
                 return;
             }
 
-            var question = quizQuestions[currentQuizQuestionIndex];
+            var question = currentQuizQuestions[currentQuizQuestionIndex];
             QuizQuestion.Text = question.Question;
             OptionA.Content = question.Options.Length > 0 ? question.Options[0] : "";
             OptionB.Content = question.Options.Length > 1 ? question.Options[1] : "";
@@ -336,11 +520,11 @@ namespace PROG6221_st10440651_Part3
             QuizFeedback.Text = "";
         }
 
-        private void SubmitQuizAnswer_Click(object sender, RoutedEventArgs e)
+        private async void SubmitQuizAnswer_Click(object sender, RoutedEventArgs e)
         {
-            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= quizQuestions.Count) return;
+            if (currentQuizQuestionIndex < 0 || currentQuizQuestionIndex >= currentQuizQuestions.Count) return;
 
-            var question = quizQuestions[currentQuizQuestionIndex];
+            var question = currentQuizQuestions[currentQuizQuestionIndex];
             int selectedAnswer = -1;
             if (OptionA.IsChecked == true) selectedAnswer = 0;
             else if (OptionB.IsChecked == true) selectedAnswer = 1;
@@ -354,15 +538,24 @@ namespace PROG6221_st10440651_Part3
             }
 
             string correctAnswerText = question.Options[question.CorrectAnswer];
+            string feedbackText;
             if (selectedAnswer == question.CorrectAnswer)
             {
                 quizScore++;
-                QuizFeedback.Text = $"Correct! The correct answer is: {correctAnswerText}. {question.Explanation}";
+                feedbackText = $"Correct! The correct answer is: {correctAnswerText}. {question.Explanation}";
             }
             else
             {
-                QuizFeedback.Text = $"Incorrect :( The correct answer is: {correctAnswerText}. {question.Explanation}";
+                feedbackText = $"Incorrect :( The correct answer is: {correctAnswerText}. {question.Explanation}";
             }
+
+            QuizFeedback.Text = feedbackText;
+            AddToLog($"Answered question {currentQuizQuestionIndex + 1}: {feedbackText}");
+
+            // Force UI update
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+            // Delay for 3 seconds for feedback visibility
+            await Task.Delay(3000);
 
             currentQuizQuestionIndex++;
             DisplayQuizQuestion();
